@@ -21,6 +21,7 @@ from src.common.exceptions import ValidationException, NotFoundException
 # Initialize service
 user_service = UserService()
 
+
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
@@ -51,16 +52,15 @@ def login(request):
             'tokens': tokens
         }, status=status.HTTP_200_OK)
 
-    except ValidationException as e:
-        return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except ValidationException as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_401_UNAUTHORIZED)
+    except Exception as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
-
     try:
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -83,62 +83,62 @@ def register(request):
             'tokens': tokens
         }, status=status.HTTP_201_CREATED)
 
-    except ValidationException as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except ValidationException as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout(request):
-    """
-    Logout user by blacklisting the refresh token
-    """
     try:
-        refresh_token = request.data.get('refresh')
+        refresh_token_str = request.data.get('refresh')
 
-        if not refresh_token:
+        if not refresh_token_str:
             return Response(
                 {'error': 'Refresh token is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        token = RefreshToken(refresh_token)
+        token = RefreshToken(refresh_token_str)
         token.blacklist()
 
         return Response({
             'message': 'Logout successful'
         }, status=status.HTTP_200_OK)
 
-    except TokenError as e:
+    except TokenError:
         return Response({'error': 'Invalid or expired token'}, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-def refresh_token(request):
+def refresh_access_token(request):
+    """
+    Refresh access token using refresh token
+    """
     try:
-        refresh_token = request.data.get('refresh')
+        refresh_token_str = request.data.get('refresh')
 
-        if not refresh_token:
+        if not refresh_token_str:
             return Response(
                 {'error': 'Refresh token is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        token = RefreshToken(refresh_token)
+        token = RefreshToken(refresh_token_str)
 
         return Response({
             'access': str(token.access_token),
         }, status=status.HTTP_200_OK)
 
-    except TokenError as e:
+    except TokenError:
         return Response({'error': 'Invalid or expired refresh token'}, status=status.HTTP_401_UNAUTHORIZED)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -150,57 +150,26 @@ def user_list(request):
         users = user_service.get_active_users()
         serializer = UserListSerializer(users, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def user_detail(request, user_id):
-
     try:
         user = user_service.get_user_by_id(user_id)
         serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    except NotFoundException as e:
-        return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def create_user(request):
-
-    try:
-        serializer = UserCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        user = user_service.create_user(
-            username=serializer.validated_data['username'],
-            email=serializer.validated_data['email'],
-            password=serializer.validated_data['password'],
-            first_name=serializer.validated_data.get('first_name', ''),
-            last_name=serializer.validated_data.get('last_name', ''),
-            date_of_birth=serializer.validated_data.get('date_of_birth')
-        )
-
-        response_serializer = UserSerializer(user)
-        return Response({
-            'message': 'User created successfully',
-            'user': response_serializer.data
-        }, status=status.HTTP_201_CREATED)
-
-    except ValidationException as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except NotFoundException as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def update_user(request, user_id):
-
     try:
         # Check if user is updating their own profile
         if request.user.id != int(user_id) and not request.user.is_staff:
@@ -224,18 +193,17 @@ def update_user(request, user_id):
             'user': response_serializer.data
         }, status=status.HTTP_200_OK)
 
-    except NotFoundException as e:
-        return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
-    except ValidationException as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except NotFoundException as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_404_NOT_FOUND)
+    except ValidationException as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_user(request, user_id):
-
     try:
         # Check if user is deleting their own account or is staff
         if request.user.id != int(user_id) and not request.user.is_staff:
@@ -251,16 +219,15 @@ def delete_user(request, user_id):
             'message': f'User {user.username} deleted successfully'
         }, status=status.HTTP_200_OK)
 
-    except NotFoundException as e:
-        return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except NotFoundException as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def current_user(request):
-
     serializer = UserSerializer(request.user)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -268,7 +235,6 @@ def current_user(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def change_password(request):
-
     try:
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -283,16 +249,15 @@ def change_password(request):
             'message': 'Password changed successfully'
         }, status=status.HTTP_200_OK)
 
-    except ValidationException as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except ValidationException as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def search_users(request):
-
     try:
         query = request.GET.get('q', '')
 
@@ -310,8 +275,8 @@ def search_users(request):
             'results': serializer.data
         }, status=status.HTTP_200_OK)
 
-    except ValidationException as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except ValidationException as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 

@@ -6,11 +6,10 @@ urlpatterns = [
     path('auth/login/', views.login, name='auth-login'),
     path('auth/register/', views.register, name='auth-register'),
     path('auth/logout/', views.logout, name='auth-logout'),
-    path('auth/refresh/', views.refresh_token, name='auth-refresh'),
+    path('auth/refresh/', views.refresh_access_token, name='auth-refresh'),
 
     # User management endpoints
     path('', views.user_list, name='user-list'),
-    path('create/', views.create_user, name='user-create'),
     path('me/', views.current_user, name='current-user'),
     path('change-password/', views.change_password, name='change-password'),
     path('search/', views.search_users, name='search-users'),
