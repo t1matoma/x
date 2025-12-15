@@ -1,12 +1,12 @@
-"""
-Schemas package - DRF Serializers
-"""
+
 from .user import (
     UserSerializer,
     UserCreateSerializer,
     UserUpdateSerializer,
     UserListSerializer,
-    ChangePasswordSerializer
+    ChangePasswordSerializer,
+    LoginSerializer,
+    RegisterSerializer
 )
 
 __all__ = [
@@ -14,5 +14,7 @@ __all__ = [
     'UserCreateSerializer',
     'UserUpdateSerializer',
     'UserListSerializer',
-    'ChangePasswordSerializer'
+    'ChangePasswordSerializer',
+    'LoginSerializer',
+    'RegisterSerializer'
 ]

@@ -65,3 +65,26 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError({"new_password": "Passwords do not match."})
         return attrs
 
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True)
+    password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'})
+
+
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, min_length=8, style={'input_type': 'password'})
+    password_confirm = serializers.CharField(write_only=True, style={'input_type': 'password'})
+
+    class Meta:
+        model = User
+        fields = [
+            'username', 'email', 'password', 'password_confirm',
+            'first_name', 'last_name', 'date_of_birth'
+        ]
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs.pop('password_confirm'):
+            raise serializers.ValidationError({"password": "Passwords do not match."})
+        return attrs
+
+
