@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'src.apps.users.apps.UsersConfig',
     'src.apps.posts.apps.PostsConfig',
+    'src.apps.comments.apps.CommentsConfig',
 ]
 
 MIDDLEWARE = [
