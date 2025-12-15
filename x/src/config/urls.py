@@ -23,4 +23,5 @@ urlpatterns = [
 
     # App URLs
     path('api/users/', include('src.apps.users.api.urls')),
+    path('api/posts/', include('src.apps.posts.api.urls')),
 ]

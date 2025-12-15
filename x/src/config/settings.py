@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent.parent  # Points to project root
 
 # Load environment variables from .env file
-load_dotenv(BASE_DIR / '.env')
+load_dotenv()
 
 
 # Quick-start development settings - unsuitable for production
@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'src.apps.users.apps.UsersConfig',
+    'src.apps.posts.apps.PostsConfig',
 ]
 
 MIDDLEWARE = [
