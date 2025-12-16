@@ -4,18 +4,16 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
-
+from src.common.exceptions import ValidationException, NotFoundException
 from src.apps.users.services.user_service import UserService
 from src.apps.users.schemas.user import (
     UserSerializer,
-    UserCreateSerializer,
     UserUpdateSerializer,
     UserListSerializer,
     ChangePasswordSerializer,
     LoginSerializer,
     RegisterSerializer
 )
-from src.common.exceptions import ValidationException, NotFoundException
 
 
 # Initialize service

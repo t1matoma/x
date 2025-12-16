@@ -10,6 +10,11 @@ class CommentService:
 		return CommentRepository.list(filters=filters)
 
 	@staticmethod
+	def list_comments_by_post(post_id: int):
+		filters = {'post_id': post_id}
+		return CommentRepository.list(filters=filters)
+
+	@staticmethod
 	def get_comment(pk: int) -> Comment|None:
 		return CommentRepository.get(pk=pk)
 

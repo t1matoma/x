@@ -1,6 +1,7 @@
 from typing import Any
 
 from src.apps.comments.models.comment import Comment
+from src.apps.posts.models import post
 
 
 class CommentRepository:
@@ -32,3 +33,7 @@ class CommentRepository:
 	@staticmethod
 	def delete(instance: Comment) -> None:
 		instance.delete()
+
+	@staticmethod
+	def get_by_post():
+		return Comment.objects.filter(post=post)
