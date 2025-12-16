@@ -5,11 +5,8 @@ from src.apps.posts.models.post import Post
 
 class PostRepository:
 	@staticmethod
-	def list(filters: dict[str, Any] = None):
-		qs = Post.objects.all()
-		if filters:
-			qs = qs.filter(**filters)
-		return qs
+	def list():
+		return Post.objects.prefetch_related('likes__user').all()
 
 	@staticmethod
 	def get(pk: int) -> Post|None:

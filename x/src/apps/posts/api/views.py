@@ -1,4 +1,5 @@
 from rest_framework import viewsets, status, mixins
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils.decorators import method_decorator
@@ -7,6 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from src.apps.posts.schemas.post import PostSerializer, PostCreateSerializer
 from src.apps.posts.services.post_service import PostService
+from ..services.like_service import LikeService
 
 @method_decorator(csrf_exempt, name='dispatch')
 class PostViewSet(
@@ -19,6 +21,16 @@ class PostViewSet(
 ):
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticated]
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def like(self, request, pk=None):
+        post = PostService.get_post(pk=int(pk))
+        if not post:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        LikeService.toggle_like(post=post, user=request.user)
+        
+        return Response({'message': 'Toggled like status'}, status=status.HTTP_200_OK)
 
     def get_queryset(self):
         return PostService.list_posts()
