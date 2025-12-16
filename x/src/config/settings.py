@@ -48,7 +48,8 @@ INSTALLED_APPS = [
     'src.apps.users.apps.UsersConfig',
     'src.apps.posts.apps.PostsConfig',
     'src.apps.comments.apps.CommentsConfig',
-    'src.apps.chats.apps.ChatsConfig'
+    'src.apps.chats.apps.ChatsConfig',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -80,7 +81,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'src.config.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
