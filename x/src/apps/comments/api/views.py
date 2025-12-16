@@ -3,8 +3,6 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-
-
 from src.apps.comments.schemas.comment import CommentSerializer, CommentCreateSerializer
 from src.apps.comments.services.comment_service import CommentService
 
@@ -48,3 +46,6 @@ class CommentViewSet(
         if not deleted:
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    
+    

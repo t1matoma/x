@@ -9,6 +9,8 @@ from django.views.decorators.csrf import csrf_exempt
 from src.apps.posts.schemas.post import PostSerializer, PostCreateSerializer
 from src.apps.posts.services.post_service import PostService
 from ..services.like_service import LikeService
+from src.apps.comments.services.comment_service import CommentService
+from src.apps.comments.schemas.comment import CommentSerializer
 
 @method_decorator(csrf_exempt, name='dispatch')
 class PostViewSet(
@@ -31,6 +33,27 @@ class PostViewSet(
         LikeService.toggle_like(post=post, user=request.user)
         
         return Response({'message': 'Toggled like status'}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def comment(self, request, pk=None):
+        post = PostService.get_post(pk=int(pk))
+        if not post:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        data = {'post': post, 'content': request.data.get('content')}
+        comment = CommentService.create_comment(data=data, author=request.user)
+        serializer = CommentSerializer(comment)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    def comments(self, request, pk=None):
+        post = PostService.get_post(pk=int(pk))
+        if not post:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        comments = CommentService.list_comments_by_post(post_id=post.id)
+        serializer = CommentSerializer(comments, many=True)
+        return Response(serializer.data)
+
 
     def get_queryset(self):
         return PostService.list_posts()
