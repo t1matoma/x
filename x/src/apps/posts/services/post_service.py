@@ -6,8 +6,8 @@ from src.apps.posts.models.post import Post
 
 class PostService:
 	@staticmethod
-	def list_posts(filters: dict[str, Any]|None = None):
-		return PostRepository.list(filters=filters)
+	def list_posts():
+		return PostRepository.list()
 
 	@staticmethod
 	def get_post(pk: int) -> Post|None:
