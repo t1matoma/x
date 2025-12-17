@@ -25,4 +25,5 @@ urlpatterns = [
     path('api/users/', include('src.apps.users.api.urls')),
     path('api/posts/', include('src.apps.posts.api.urls')),
     path('api/comments/', include('src.apps.comments.api.urls')),
+    path('api/', include('src.apps.chats.api.urls')),
 ]
