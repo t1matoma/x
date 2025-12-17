@@ -1,4 +1,4 @@
-from .chat import CommentSerializer, CommentCreateSerializer
+from .chat import ChatSerializer,ChatCreateSerializer
 
-__all__ = ['CommentSerializer', 'CommentCreateSerializer']
+__all__ = ['ChatSerializer', 'ChatCreateSerializer']
 
