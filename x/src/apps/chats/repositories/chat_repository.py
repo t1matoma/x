@@ -23,10 +23,14 @@ class ChatRepository:
 
     @staticmethod
     def create(*, data: dict[str, Any], members) -> Chat:
-        chat = Chat.objects.create(members=members,**data)
+        chat = Chat.objects.create(**data)
         chat.members.set(members)
         return chat
 
     @staticmethod
     def delete(user, instance: Chat) -> None:
         instance.delete()
+
+    @staticmethod
+    def get_by_id(pk):
+        return Chat.objects.filter(id=pk).first()

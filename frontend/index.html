@@ -35,19 +35,42 @@
                 <h1>Social Media</h1>
                 <button id="logout-btn">Logout</button>
             </header>
-
-            <div id="create-post">
-                <h3>Create New Post</h3>
-                <form id="post-form">
-                    <input type="text" id="post-title" placeholder="Post Title" required>
-                    <textarea id="post-content-input" placeholder="Post Content" required></textarea>
-                    <button type="submit">Create Post</button>
-                </form>
+            <nav>
+                <button id="show-posts-btn">Posts</button>
+                <button id="show-chats-btn">Chats</button>
+            </nav>
+            <div id="posts-section">
+                <div id="create-post">
+                    <h3>Create New Post</h3>
+                    <form id="post-form">
+                        <input type="text" id="post-title" placeholder="Post Title" required>
+                        <textarea id="post-content-input" placeholder="Post Content" required></textarea>
+                        <button type="submit">Create Post</button>
+                    </form>
+                </div>
+                <div id="posts">
+                    <h3>Posts</h3>
+                    <div id="posts-list"></div>
+                </div>
             </div>
-
-            <div id="posts">
-                <h3>Posts</h3>
-                <div id="posts-list"></div>
+            <div id="chats-section" class="hidden">
+                <div id="chat-section">
+                    <h3>Chats</h3>
+                    <div id="chats-list"></div>
+                    <form id="chat-form">
+                        <input type="text" id="chat-member-username" placeholder="Enter username to start chat" required>
+                        <button type="submit">Start Chat</button>
+                    </form>
+                </div>
+                <div id="messages-section" class="hidden">
+                    <button id="back-to-chats">Back to Chats</button>
+                    <h4 id="chat-title"></h4>
+                    <div id="messages-list"></div>
+                    <form id="message-form">
+                        <textarea id="message-content" placeholder="Type a message" required></textarea>
+                        <button type="submit">Send</button>
+                    </form>
+                </div>
             </div>
         </div>
 

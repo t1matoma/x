@@ -3,10 +3,11 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from ..schemas.chat import ChatSerializer, ChatCreateSerializer
+from ..schemas.chat import ChatSerializer
 from ..services.chat_service import ChatService
 from ..schemas.message import MessageSerializer, MessageCreateSerializer, MessageEditSerializer
 from ..services.message_service import MessageService
+from ..models.message import Message
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ChatViewSet(
@@ -24,11 +25,19 @@ class ChatViewSet(
         return ChatService.list_chats_for_user(self.request.user)
     
     def create(self, request, *args, **kwargs):
-        serializer = ChatCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        member_username = request.data.get('member_username')
+        if not member_username:
+            return Response({'error': 'member_username required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            user2 = User.objects.get(username=member_username)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
         chat = ChatService.get_or_create_chat(
             user1=request.user,
-            user2=serializer.validated_data['members'][0]  # Assuming two-member chats
+            user2=user2
         )
         out = self.get_serializer(chat)
         return Response(out.data, status=status.HTTP_201_CREATED)
@@ -53,16 +62,21 @@ class MessageViewSet(
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        chat_id = self.request.query_params.get('chat_id')
+        chat_id = self.kwargs.get('chat_pk') or self.request.query_params.get('chat_id')
+        if not chat_id:
+            return Message.objects.none()
         return MessageService.get_messages_for_chat(chat_id)
     
     def create(self, request, *args, **kwargs):
-        serializer = MessageCreateSerializer(data=request.data)
+        chat_id = self.kwargs.get('chat_pk')
+        if not chat_id:
+            return Response({'error': 'chat_id required'}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = MessageCreateSerializer(data={**request.data, 'chat': chat_id})
         serializer.is_valid(raise_exception=True)
         message = MessageService.send_message(
             user=request.user,
             content=serializer.validated_data['content'],
-            chat_id=serializer.validated_data['chat'].id
+            chat_id=chat_id
         )
         out = self.get_serializer(message)
         return Response(out.data, status=status.HTTP_201_CREATED)
@@ -81,7 +95,8 @@ class MessageViewSet(
     
     def destroy(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
-        deleted = MessageService.remove_message(pk, self.request.user)
-        if not deleted:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            deleted = MessageService.remove_message(pk, self.request.user)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except PermissionError:
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)

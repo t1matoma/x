@@ -30,9 +30,12 @@ class PostViewSet(
         if not post:
             return Response(status=status.HTTP_404_NOT_FOUND)
         
-        LikeService.toggle_like(post=post, user=request.user)
-        
-        return Response({'message': 'Toggled like status'}, status=status.HTTP_200_OK)
+        liked = LikeService.toggle_like(post=post, user=request.user)
+
+        return Response({
+            'liked': liked,
+            'count': post.likes.count()
+        }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def comment(self, request, pk=None):
@@ -58,6 +61,11 @@ class PostViewSet(
     def get_queryset(self):
         return PostService.list_posts()
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
     def create(self, request, *args, **kwargs):
         serializer = PostCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -75,7 +83,8 @@ class PostViewSet(
         )
         if not post:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        return Response(PostSerializer(post).data)
+        out = self.get_serializer(post)
+        return Response(out.data)
 
     def destroy(self, request, *args, **kwargs):
         pk = kwargs.get('pk')

@@ -10,7 +10,10 @@ class MessageService:
         return MessageRepository.create_message(content, user.id, chat_id)
     
     @staticmethod
-    def remove_message(message_id: int):
+    def remove_message(message_id: int, user):
+        message = MessageRepository.get_message_by_id(message_id)
+        if message.sender_id != user.id:
+            raise PermissionError("You do not have permission to delete this message.")
         MessageRepository.delete_message(message_id)
         
     @staticmethod
