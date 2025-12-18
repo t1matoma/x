@@ -155,9 +155,15 @@ function showChatsView() {
     elements.showChatsBtn.classList.add('active');
     document.getElementById('chat-section').classList.remove('hidden');
     document.getElementById('messages-section').classList.add('hidden');
+    
     loadChats();
+    
+    // Останавливаем polling
     stopMessagePolling();
+    
+    // Закрываем WebSocket если открыт
     if (state.chatSocket) {
+        console.log('🔌 Closing WebSocket connection');
         state.chatSocket.close();
         state.chatSocket = null;
     }
@@ -627,7 +633,11 @@ async function viewChat(chatId) {
         if (response.ok) {
             const chat = await response.json();
             document.getElementById('chat-title').textContent = `Chat with ${chat.members_usernames.join(', ')}`;
-            loadMessages(chatId);
+            
+            // Сначала загружаем историю сообщений
+            await loadMessages(chatId);
+            
+            // Потом подключаем WebSocket
             startChatWebSocket(chatId);
         }
     } catch (error) {
@@ -649,9 +659,21 @@ function handleChatClick(e) {
 
 async function loadMessages(chatId) {
     try {
-        const response = await fetch(`${API_BASE}/chats/${chatId}/messages/`, {
+        let response = await fetch(`${API_BASE}/chats/${chatId}/messages/`, {
             headers: { 'Authorization': `Bearer ${state.accessToken}` }
         });
+
+        // Если 401, обновляем токен и пробуем снова
+        if (response.status === 401) {
+            console.log('Token expired, refreshing...');
+            if (await refreshAccessToken()) {
+                response = await fetch(`${API_BASE}/chats/${chatId}/messages/`, {
+                    headers: { 'Authorization': `Bearer ${state.accessToken}` }
+                });
+            } else {
+                return;
+            }
+        }
 
         if (response.ok) {
             const messages = await response.json();
@@ -660,6 +682,7 @@ async function loadMessages(chatId) {
     } catch (error) {
         console.error('Load messages error:', error);
     }
+    // НЕ ЗАПУСКАЕМ POLLING ЗДЕСЬ!
 }
 
 function displayMessages(messages) {
@@ -726,42 +749,57 @@ async function handleSendMessage(e) {
 // ============================================
 
 function startChatWebSocket(chatId) {
+    console.log('🔌 Starting WebSocket connection for chat:', chatId);
+    
+    // ВАЖНО: Сначала останавливаем polling
+    stopMessagePolling();
+    
+    // Закрываем старый socket если есть
     if (state.chatSocket) {
         state.chatSocket.close();
+        state.chatSocket = null;
     }
 
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${wsProtocol}//localhost:8000/ws/chat/${chatId}/?token=${state.accessToken}`;
+    
+    console.log('🔌 Connecting to:', wsUrl);
 
-    state.chatSocket = new WebSocket(wsUrl);
+    try {
+        state.chatSocket = new WebSocket(wsUrl);
 
-    state.chatSocket.onopen = function(e) {
-        console.log('WebSocket connected');
-        stopMessagePolling();
-    };
+        state.chatSocket.onopen = function(e) {
+            console.log('✅ WebSocket CONNECTED successfully');
+        };
 
-    state.chatSocket.onmessage = function(e) {
-        const message = JSON.parse(e.data);
-        const messageElement = document.createElement('div');
-        messageElement.className = 'message';
-        messageElement.innerHTML = `
-            <p><strong>${escapeHtml(message.sender_username)}:</strong> ${escapeHtml(message.content)}</p>
-            <small>${new Date(message.timestamp).toLocaleString()}</small>
-        `;
-        elements.messagesList.appendChild(messageElement);
-        elements.messagesList.scrollTop = elements.messagesList.scrollHeight;
-    };
+        state.chatSocket.onmessage = function(e) {
+            console.log('📨 Message received:', e.data);
+            const message = JSON.parse(e.data);
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message';
+            messageElement.innerHTML = `
+                <p><strong>${escapeHtml(message.sender_username)}:</strong> ${escapeHtml(message.content)}</p>
+                <small>${new Date(message.timestamp).toLocaleString()}</small>
+            `;
+            elements.messagesList.appendChild(messageElement);
+            elements.messagesList.scrollTop = elements.messagesList.scrollHeight;
+        };
 
-    state.chatSocket.onclose = function(e) {
-        console.log('WebSocket closed, falling back to polling');
+        state.chatSocket.onclose = function(e) {
+            console.error('❌ WebSocket CLOSED. Code:', e.code, 'Reason:', e.reason);
+            console.log('⚠️ Falling back to polling...');
+            state.chatSocket = null;
+            startMessagePolling(chatId);
+        };
+
+        state.chatSocket.onerror = function(e) {
+            console.error('❌ WebSocket ERROR:', e);
+        };
+    } catch (error) {
+        console.error('❌ Failed to create WebSocket:', error);
         startMessagePolling(chatId);
-    };
-
-    state.chatSocket.onerror = function(e) {
-        console.error('WebSocket error:', e);
-    };
+    }
 }
-
 // Polling fallback
 let messagePollingInterval;
 
