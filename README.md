@@ -63,7 +63,7 @@ The goal of project X was to develop an educational social network in order to g
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/t1matoma/x
    cd x
    ```
 
