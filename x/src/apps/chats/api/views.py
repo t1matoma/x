@@ -8,6 +8,7 @@ from ..services.chat_service import ChatService
 from ..schemas.message import MessageSerializer, MessageCreateSerializer, MessageEditSerializer
 from ..services.message_service import MessageService
 from ..models.message import Message
+from rest_framework.parsers import MultiPartParser, FormParser
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ChatViewSet(
@@ -60,27 +61,37 @@ class MessageViewSet(
 ):
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser)
     
     def get_queryset(self):
         chat_id = self.kwargs.get('chat_pk') or self.request.query_params.get('chat_id')
         if not chat_id:
             return Message.objects.none()
         return MessageService.get_messages_for_chat(chat_id)
-    
     def create(self, request, *args, **kwargs):
+        print(request.data)
+        print(type(request.data.get('content')))
         chat_id = self.kwargs.get('chat_pk')
         if not chat_id:
             return Response({'error': 'chat_id required'}, status=status.HTTP_400_BAD_REQUEST)
-        serializer = MessageCreateSerializer(data={**request.data, 'chat': chat_id})
+
+        serializer = MessageCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        file = serializer.validated_data.get('file')
+
+        # Отправляем сообщение через сервис
         message = MessageService.send_message(
             user=request.user,
             content=serializer.validated_data['content'],
-            chat_id=chat_id
+            chat_id=chat_id,
+            file=file 
         )
-        out = self.get_serializer(message)
-        return Response(out.data, status=status.HTTP_201_CREATED)
-    
+        
+        return Response(
+        MessageSerializer(message).data,
+        status=status.HTTP_201_CREATED
+    )
     def update(self, request, *args, **kwargs):
         serializer = MessageEditSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'src.apps.comments.apps.CommentsConfig',
     'src.apps.chats.apps.ChatsConfig',
     'channels',
+    'storages'
 ]
 
 MIDDLEWARE = [
@@ -227,3 +228,16 @@ CHANNEL_LAYERS = {
     },
 }
 
+
+# AWS S3 / Cloudflare R2 Settings
+
+R2_ACCESS_KEY_ID = os.getenv('R2_ACCESS_KEY_ID')    
+R2_SECRET_ACCESS_KEY = os.getenv('R2_SECRET_ACCESS_KEY')
+R2_ENDPOINT_URL = os.getenv('R2_ENDPOINT_URL')
+R2_BUCKET_NAME = os.getenv('R2_BUCKET_NAME')
+
+# Use S3 for store mediafiles
+DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+
+# Опционально: URL для доступа к файлам
+MEDIA_URL = f"https://{R2_BUCKET_NAME}.{R2_ENDPOINT_URL.split('//')[1]}/"

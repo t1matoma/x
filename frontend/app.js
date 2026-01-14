@@ -688,17 +688,26 @@ async function loadMessages(chatId) {
 function displayMessages(messages) {
     elements.messagesList.innerHTML = '';
 
-    if (!Array.isArray(messages) || messages.length === 0) {
+    if (!Array.isArray(messages) || Object.keys(messages).length === 0) {
         elements.messagesList.innerHTML = '<p style="text-align: center; color: #6c757d;">No messages yet. Start the conversation!</p>';
         return;
     }
 
-    messages.forEach(message => {
+    Object.values(messages).forEach(message => {
         const messageElement = document.createElement('div');
         messageElement.className = 'message';
         const timestamp = message.timestamp || message.created_at;
+
+        let fileHtml = '';
+        if (message.file_url) {
+            const safeUrl = encodeURI(message.file_url);
+            fileHtml = `<br><a href="${safeUrl}" target="_blank">📎 View file</a><br>
+                        <img src="${safeUrl}" alt="file" style="max-width: 200px; max-height: 200px;">`;
+        }
+
         messageElement.innerHTML = `
             <p><strong>${escapeHtml(message.sender_username)}:</strong> ${escapeHtml(message.content)}</p>
+            ${fileHtml}
             <small>${new Date(timestamp).toLocaleString()}</small>
         `;
         elements.messagesList.appendChild(messageElement);
@@ -707,34 +716,51 @@ function displayMessages(messages) {
     elements.messagesList.scrollTop = elements.messagesList.scrollHeight;
 }
 
+
 async function handleSendMessage(e) {
     e.preventDefault();
     const content = document.getElementById('message-content').value;
+    const fileInput = document.getElementById('message-file');
+    const file = fileInput.files[0]; // получаем первый выбранный файл
 
-    if (!content.trim()) {
-        alert('Please enter a message');
+    if (!content.trim() && !file) {
+        alert('Please enter a message or select a file');
         return;
     }
 
+    // Если WebSocket открыт — отправляем туда
     if (state.chatSocket && state.chatSocket.readyState === WebSocket.OPEN) {
-        state.chatSocket.send(JSON.stringify({ content: content }));
+        const msgData = { content };
+        if (file) {
+            // В WebSocket отправляем только текст и название файла
+            // Файл всё равно нужно будет отправить через HTTP, WebSocket не умеет отправлять бинарный S3 напрямую
+            msgData.file_name = file.name;
+        }
+        state.chatSocket.send(JSON.stringify(msgData));
         document.getElementById('message-content').value = '';
+        fileInput.value = '';
     } else {
-        // Fallback to HTTP
+        // HTTP fallback с formData для файла
         try {
+            const formData = new FormData();
+            formData.append('content', content);
+            if (file) formData.append('file', file);
+
             const response = await fetch(`${API_BASE}/chats/${state.currentChatId}/messages/`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${state.accessToken}`
                 },
-                body: JSON.stringify({ content })
+                body: formData
             });
 
             if (response.ok) {
                 document.getElementById('message-content').value = '';
-                loadMessages(state.currentChatId);
+                fileInput.value = '';
+                loadMessages(state.currentChatId); // обновляем чат
             } else {
+                const err = await response.json();
+                console.error('Send message failed:', err);
                 alert('Failed to send message');
             }
         } catch (error) {
@@ -743,6 +769,7 @@ async function handleSendMessage(e) {
         }
     }
 }
+
 
 // ============================================
 // WEBSOCKET
